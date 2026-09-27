@@ -2,14 +2,18 @@ name: iOS 27 — build and optional TestFlight
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
   workflow_dispatch:
     inputs:
-      deploy:
-        description: "Upload to TestFlight (needs Apple secrets)"
-        type: boolean
-        default: false
+      target:
+        description: "Where to ship"
+        type: choice
+        options:
+          - simulator
+          - testflight
+          - appstore
+        default: simulator
 
 permissions:
   contents: read
@@ -18,6 +22,7 @@ jobs:
   generate-and-build:
     name: Generate Xcode project + build iOS 27
     runs-on: xcode-27
+    environment: simulator
     steps:
       - uses: actions/checkout@v5
 
@@ -25,7 +30,6 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
-          xcrun simctl list devices available | head -40
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -54,37 +58,65 @@ jobs:
   testflight:
     name: Archive + TestFlight
     needs: generate-and-build
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy == true
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'testflight'
     runs-on: xcode-27
+    environment: testflight
     steps:
       - uses: actions/checkout@v5
-
       - name: Toolchain
         run: sudo xcode-select -s /Applications/Xcode.app
-
       - name: Install XcodeGen + Fastlane
         run: |
           brew install xcodegen
           brew install fastlane
-
       - name: Generate project
         run: xcodegen generate
-
       - name: Write App Store Connect API key
         env:
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
         run: |
-          test -n "$ASC_KEY_ID"
-          test -n "$ASC_ISSUER_ID"
-          test -n "$ASC_KEY_P8"
+          test -n "$ASC_KEY_ID" || { echo "Missing APP_STORE_CONNECT_KEY_ID in environment testflight"; exit 1; }
+          test -n "$ASC_ISSUER_ID" || { echo "Missing APP_STORE_CONNECT_ISSUER_ID"; exit 1; }
+          test -n "$ASC_KEY_P8" || { echo "Missing APP_STORE_CONNECT_KEY_P8"; exit 1; }
           mkdir -p fastlane
-          printf '%s\n' "$ASC_KEY_P8" > fastlane/AuthKey_${ASC_KEY_ID}.p8
-
+          printf '%s\n' "$ASC_KEY_P8" > "fastlane/AuthKey_${ASC_KEY_ID}.p8"
       - name: Fastlane beta
         env:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: fastlane beta
+
+  appstore:
+    name: Archive + App Store submit
+    needs: generate-and-build
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'appstore'
+    runs-on: xcode-27
+    environment: appstore
+    steps:
+      - uses: actions/checkout@v5
+      - name: Toolchain
+        run: sudo xcode-select -s /Applications/Xcode.app
+      - name: Install tools
+        run: |
+          brew install xcodegen
+          brew install fastlane
+      - name: Generate project
+        run: xcodegen generate
+      - name: Write API key
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+        run: |
+          test -n "$ASC_KEY_ID" && test -n "$ASC_ISSUER_ID" && test -n "$ASC_KEY_P8"
+          mkdir -p fastlane
+          printf '%s\n' "$ASC_KEY_P8" > "fastlane/AuthKey_${ASC_KEY_ID}.p8"
+      - name: Fastlane release
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: fastlane release

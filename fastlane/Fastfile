@@ -1,31 +1,53 @@
 default_platform(:ios)
 
+def connect_key
+  key_id = ENV.fetch("APP_STORE_CONNECT_KEY_ID")
+  app_store_connect_api_key(
+    key_id: key_id,
+    issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+    key_filepath: "fastlane/AuthKey_#{key_id}.p8",
+    duration: 1200,
+    in_house: false
+  )
+end
+
 platform :ios do
-  desc "Build signed IPA and upload to TestFlight"
+  desc "Signed IPA → TestFlight"
   lane :beta do
-    key_id = ENV.fetch("APP_STORE_CONNECT_KEY_ID")
-    issuer_id = ENV.fetch("APP_STORE_CONNECT_ISSUER_ID")
-    key_filepath = "fastlane/AuthKey_#{key_id}.p8"
-
-    api_key = app_store_connect_api_key(
-      key_id: key_id,
-      issuer_id: issuer_id,
-      key_filepath: key_filepath,
-      duration: 1200,
-      in_house: false
-    )
-
+    api_key = connect_key
+    increment_build_number(build_number: Time.now.strftime("%Y%m%d%H%M"))
     build_app(
       project: "AnterranianVIPER.xcodeproj",
       scheme: "AnterranianVIPER",
       export_method: "app-store",
       destination: "generic/platform=iOS",
+      export_options: "fastlane/ExportOptions.plist",
       xcargs: "IPHONEOS_DEPLOYMENT_TARGET=27.0"
     )
-
     upload_to_testflight(
       api_key: api_key,
       skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Signed IPA → App Store review"
+  lane :release do
+    api_key = connect_key
+    increment_build_number(build_number: Time.now.strftime("%Y%m%d%H%M"))
+    build_app(
+      project: "AnterranianVIPER.xcodeproj",
+      scheme: "AnterranianVIPER",
+      export_method: "app-store",
+      destination: "generic/platform=iOS",
+      export_options: "fastlane/ExportOptions.plist",
+      xcargs: "IPHONEOS_DEPLOYMENT_TARGET=27.0"
+    )
+    upload_to_app_store(
+      api_key: api_key,
+      submit_for_review: false,
+      automatic_release: false,
+      precheck_include_in_app_purchases: false,
+      force: true
     )
   end
 end
