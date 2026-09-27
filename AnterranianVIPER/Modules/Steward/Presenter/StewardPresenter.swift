@@ -9,6 +9,7 @@ final class StewardPresenter: StewardInteractorOutput {
     var isBusy: Bool = false
     var availabilityText: String = "Checking model…"
     var isAvailable: Bool = false
+    var mode: StewardMode = .browse
 
     private let interactor: StewardInteractorInput
 
@@ -20,6 +21,11 @@ final class StewardPresenter: StewardInteractorOutput {
         if let prep = interactor as? StewardInteractor {
             prep.prepare()
         }
+    }
+
+    func changeMode(_ mode: StewardMode) {
+        self.mode = mode
+        interactor.setMode(mode)
     }
 
     func send() {

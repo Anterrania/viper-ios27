@@ -1,17 +1,17 @@
-# Foundation Models Tool calling
+# Foundation Models — tools + dynamic profiles
 
-Applied Apple `Tool` protocol (iOS 26+) inside VIPER.
+Session is no longer static. `StewardProfile` is a `LanguageModelSession.DynamicProfile`.
+Exactly one `Profile` is active. Instructions and tools re-evaluate before each `respond`.
 
-The on-device `SystemLanguageModel` gets three tools. It decides when to call them. Tools talk to `GardenStore`, never to SwiftUI.
+| Mode | Instructions | Tools |
+|---|---|---|
+| browse | list only | `listCovenants` |
+| inspect | quote store | `describeCovenant` + `listCovenants` |
+| bind | mutate then confirm | `setCovenantBound` + `listCovenants` |
 
-| Tool name | What the model can do |
-|---|---|
-| `listCovenants` | Live titles + bound state |
-| `describeCovenant` | Full text by title keyword |
-| `setCovenantBound` | Bind / unbind by title keyword |
+```swift
+let session = LanguageModelSession(profile: StewardProfile(mode: state.mode, state: state))
+```
 
-Session lives in `StewardInteractor`. View only binds presenter state.
-
-Needs Apple Intelligence hardware (A17 Pro / M-series and later). Simulator CI still compiles; live tool calls need a supported device.
-
-Open Garden → Steward after Xcode 27 finishes installing.
+Lifecycle: `onActivate` / `onDeactivate` write into `StewardState`.
+Context overflow condenses transcript to first+last entries and rebuilds the session.
