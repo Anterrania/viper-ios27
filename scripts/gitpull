@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# gitpull <reponame>
+set -euo pipefail
+
+ROOT="${GITS_ROOT:-$HOME/gits}"
+mkdir -p "$ROOT"
+
+declare -A REPOS=(
+  [viper-ios27]="https://github.com/Anterrania/viper-ios27.git"
+  [foundation-models-utilities]="https://github.com/apple/foundation-models-utilities.git"
+  [coreai-models]="https://github.com/apple/coreai-models.git"
+)
+
+usage() {
+  echo "usage: gitpull <reponame|all>"
+  echo "known:"
+  for k in "${!REPOS[@]}"; do echo "  $k"; done
+  exit 1
+}
+
+pull_one() {
+  local name="$1"
+  local url="${REPOS[$name]:-}"
+  if [[ -z "$url" ]]; then
+    echo "unknown repo: $name"
+    usage
+  fi
+  local dest="$ROOT/$name"
+  if [[ -d "$dest/.git" ]]; then
+    echo "git pull $name"
+    git -C "$dest" pull --ff-only
+  else
+    echo "git clone --depth 1 $url"
+    git clone --depth 1 "$url" "$dest"
+  fi
+}
+
+[[ $# -eq 1 ]] || usage
+if [[ "$1" == "all" ]]; then
+  for k in "${!REPOS[@]}"; do pull_one "$k"; done
+else
+  pull_one "$1"
+fi
