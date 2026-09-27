@@ -1,0 +1,31 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build signed IPA and upload to TestFlight"
+  lane :beta do
+    key_id = ENV.fetch("APP_STORE_CONNECT_KEY_ID")
+    issuer_id = ENV.fetch("APP_STORE_CONNECT_ISSUER_ID")
+    key_filepath = "fastlane/AuthKey_#{key_id}.p8"
+
+    api_key = app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_filepath: key_filepath,
+      duration: 1200,
+      in_house: false
+    )
+
+    build_app(
+      project: "AnterranianVIPER.xcodeproj",
+      scheme: "AnterranianVIPER",
+      export_method: "app-store",
+      destination: "generic/platform=iOS",
+      xcargs: "IPHONEOS_DEPLOYMENT_TARGET=27.0"
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
+end

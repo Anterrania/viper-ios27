@@ -1,0 +1,2 @@
+app_identifier("org.anterrania.viper")
+team_id(ENV["APPLE_TEAM_ID"])
