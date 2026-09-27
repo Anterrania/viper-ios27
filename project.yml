@@ -25,3 +25,5 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.anterrania.viper
         SWIFT_STRICT_CONCURRENCY: complete
+    dependencies:
+      - sdk: FoundationModels.framework
