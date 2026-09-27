@@ -5,6 +5,15 @@ struct StewardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            Picker("Profile", selection: modeBinding) {
+                Text("Browse").tag(StewardMode.browse)
+                Text("Inspect").tag(StewardMode.inspect)
+                Text("Bind").tag(StewardMode.bind)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+
             Text(presenter.availabilityText)
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.6))
@@ -49,6 +58,13 @@ struct StewardView: View {
         .navigationTitle("Steward")
         .preferredColorScheme(.dark)
         .onAppear { presenter.onAppear() }
+    }
+
+    private var modeBinding: Binding<StewardMode> {
+        Binding(
+            get: { presenter.mode },
+            set: { presenter.changeMode($0) }
+        )
     }
 
     private func bubbleColor(_ role: StewardTurn.Role) -> Color {
