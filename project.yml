@@ -1,0 +1,27 @@
+name: AnterranianVIPER
+options:
+  bundleIdPrefix: org.anterrania
+  deploymentTarget:
+    iOS: "27.0"
+  xcodeVersion: "27"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "27.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    GENERATE_INFOPLIST_FILE: YES
+    INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    INFOPLIST_KEY_CFBundleDisplayName: Anterranian
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  AnterranianVIPER:
+    type: application
+    platform: iOS
+    sources:
+      - path: AnterranianVIPER
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.anterrania.viper
+        SWIFT_STRICT_CONCURRENCY: complete
